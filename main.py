@@ -12,7 +12,7 @@ from pathlib import Path
 import aiofiles
 import openai
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -139,14 +139,16 @@ app = FastAPI(title="Neural Handwriting LaTeX")
 
 
 @app.post("/convert")
-async def convert(file: UploadFile):
+async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
     content_type = file.content_type or ""
     if content_type not in ALLOWED_MIME:
         raise HTTPException(status_code=415, detail="File must be an image")
 
+    pdf_name = pdf_name.strip() or "handwriting"
+    pdf_name = re.sub(r"\.pdf$", "", pdf_name, flags=re.IGNORECASE)
+
     job_id = uuid.uuid4().hex
     ext = EXT_MAP[content_type]
-    original_name = file.filename or f"upload{ext}"
     input_path = TMP / f"{job_id}_input{ext}"
     tex_path = TMP / f"{job_id}.tex"
     pdf_path = TMP / f"{job_id}.pdf"
@@ -207,7 +209,7 @@ async def convert(file: UploadFile):
         entries = load_history()
         entries.insert(0, {
             "id": job_id,
-            "name": original_name,
+            "name": f"{pdf_name}.pdf",
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
         save_history(entries)
