@@ -2,6 +2,8 @@
 
 Upload a photo of handwritten math or text and get a typeset PDF back. Uses GPT-4o vision to convert handwriting to LaTeX, then compiles it with pdflatex.
 
+![UI Demo](https://github.com/sahajkhandelwal1/neural-handwriting-latex/releases/download/v0.1.0/ReadmeDemo.png)
+
 ## Setup
 
 **Prerequisites:**
