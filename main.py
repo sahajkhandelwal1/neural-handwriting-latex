@@ -169,7 +169,8 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
     input_path = TMP / f"{job_id}_input{ext}"
     tex_path   = TMP / f"{job_id}.tex"
     pdf_path   = TMP / f"{job_id}.pdf"
-    png_path   = TMP / f"{job_id}.png"
+    png_path        = TMP / f"{job_id}.png"
+    preview_path    = TMP / f"{job_id}_preview.png"
     log_path   = TMP / f"{job_id}.log"
 
     try:
@@ -220,19 +221,25 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
         if not pdf_path.exists():
             raise HTTPException(status_code=422, detail="PDF was not generated")
 
-        # Render preview PNG
+        # Render export PNG (300 DPI) and preview PNG (150 DPI)
         await asyncio.get_event_loop().run_in_executor(
-            None, render_png, pdf_path, png_path
+            None, render_png, pdf_path, png_path, 300
+        )
+        await asyncio.get_event_loop().run_in_executor(
+            None, render_png, pdf_path, preview_path, 150
         )
 
         # Save to history
         hist_pdf = HISTORY_DIR / f"{job_id}.pdf"
         hist_tex = HISTORY_DIR / f"{job_id}.tex"
         hist_png = HISTORY_DIR / f"{job_id}.png"
+        hist_preview = HISTORY_DIR / f"{job_id}_preview.png"
         shutil.copy2(pdf_path, hist_pdf)
         shutil.copy2(tex_path, hist_tex)
         if png_path.exists():
             shutil.copy2(png_path, hist_png)
+        if preview_path.exists():
+            shutil.copy2(preview_path, hist_preview)
 
         entries = load_history()
         entries.insert(0, {
@@ -248,7 +255,7 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
         return JSONResponse({
             "job_id": job_id,
             "name": pdf_name,
-            "has_preview": png_path.exists(),
+            "has_preview": preview_path.exists(),
         })
 
     except HTTPException:
@@ -294,7 +301,7 @@ async def job_png(job_id: str):
 
 @app.get("/jobs/{job_id}/preview")
 async def job_preview(job_id: str):
-    path = _job_file(job_id, ".png")
+    path = _job_file(job_id, "_preview.png")
     return FileResponse(str(path), media_type="image/png")
 
 
