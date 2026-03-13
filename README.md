@@ -4,6 +4,8 @@ Upload a photo of handwritten math or text and get a typeset document back. Uses
 
 ![UI Demo](https://github.com/sahajkhandelwal1/neural-handwriting-latex/releases/download/v0.1.0/ReadmeDemo.png)
 
+![Comparison](https://github.com/sahajkhandelwal1/neural-handwriting-latex/releases/download/v0.1.0/Comparision.png)
+
 ## How It Works
 
 1. Upload a JPEG, PNG, WebP, or GIF of handwritten content
