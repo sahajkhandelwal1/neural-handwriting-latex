@@ -11,19 +11,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #000;
-      --surface:   #0d0d0d;
-      --surface2:  #141414;
-      --border:    #222;
-      --border2:   #2a2a2a;
-      --text:      #f0f0f0;
-      --muted:     #555;
-      --muted2:    #777;
-      --accent:    #7c6ee6;
-      --accent2:   #5a4fcf;
-      --green:     #34d399;
-      --red:       #f87171;
-      --radius:    12px;
+      --bg:       #000;
+      --surface:  #0d0d0d;
+      --surface2: #141414;
+      --border:   #222;
+      --border2:  #2a2a2a;
+      --text:     #f0f0f0;
+      --muted:    #555;
+      --muted2:   #777;
+      --green:    #34d399;
+      --red:      #f87171;
+      --radius:   12px;
     }
 
     html { scroll-behavior: smooth; }
@@ -59,12 +57,7 @@
       text-decoration: none;
     }
 
-    .nav-logo span { color: var(--accent); }
-
-    .nav-links {
-      display: flex;
-      gap: 0.25rem;
-    }
+    .nav-links { display: flex; gap: 0.25rem; }
 
     .nav-links a {
       font-size: 0.8rem;
@@ -99,9 +92,9 @@
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--accent);
-      border: 1px solid var(--accent2);
-      background: rgba(124,110,230,0.08);
+      color: #fff;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
       padding: 0.3rem 0.75rem;
       border-radius: 100px;
       margin-bottom: 1.25rem;
@@ -115,11 +108,6 @@
       margin-bottom: 0.75rem;
     }
 
-    .hero h1 em {
-      font-style: normal;
-      color: var(--accent);
-    }
-
     .hero p {
       font-size: 0.95rem;
       color: var(--muted2);
@@ -127,7 +115,7 @@
       margin: 0 auto;
     }
 
-    /* ── Upload card ── */
+    /* ── Card ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -136,6 +124,7 @@
       margin-bottom: 1rem;
     }
 
+    /* ── Drop zone ── */
     .drop-zone {
       border: 1.5px dashed var(--border2);
       border-radius: 10px;
@@ -148,8 +137,8 @@
 
     .drop-zone:hover,
     .drop-zone.drag-over {
-      border-color: var(--accent);
-      background: rgba(124,110,230,0.05);
+      border-color: #555;
+      background: rgba(255,255,255,0.02);
     }
 
     .drop-zone input[type="file"] {
@@ -162,8 +151,7 @@
     }
 
     .drop-icon {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       background: var(--surface2);
       border: 1px solid var(--border2);
       border-radius: 10px;
@@ -174,19 +162,9 @@
       font-size: 1.2rem;
     }
 
-    .drop-label {
-      font-size: 0.875rem;
-      color: var(--muted2);
-    }
-
-    .drop-label strong { color: var(--accent); font-weight: 600; }
-
-    .drop-hint {
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 0.4rem;
-      letter-spacing: 0.04em;
-    }
+    .drop-label { font-size: 0.875rem; color: var(--muted2); }
+    .drop-label strong { color: var(--text); font-weight: 600; }
+    .drop-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.4rem; letter-spacing: 0.04em; }
 
     /* ── Preview ── */
     #preview-wrap {
@@ -214,29 +192,16 @@
       border-top: 1px solid var(--border);
     }
 
-    .preview-name {
-      font-size: 0.75rem;
-      color: var(--muted2);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 80%;
-    }
+    .preview-name { font-size: 0.75rem; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; }
 
     .btn-clear {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 0.75rem;
-      padding: 0.2rem 0.4rem;
-      border-radius: 4px;
-      transition: color 0.15s;
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 0.75rem; padding: 0.2rem 0.4rem; border-radius: 4px;
+      transition: color 0.15s; font-family: 'Inter', sans-serif;
     }
-
     .btn-clear:hover { color: var(--red); }
 
-    /* ── Filename input ── */
+    /* ── Filename row ── */
     .filename-row {
       margin-top: 1.25rem;
       display: flex;
@@ -262,13 +227,11 @@
       transition: border-color 0.15s;
     }
 
-    .filename-input-wrap:focus-within { border-color: var(--accent); }
+    .filename-input-wrap:focus-within { border-color: #444; }
 
     .filename-input {
       flex: 1;
-      background: none;
-      border: none;
-      outline: none;
+      background: none; border: none; outline: none;
       padding: 0.5rem 0.75rem;
       font-family: 'Inter', sans-serif;
       font-size: 0.82rem;
@@ -299,7 +262,7 @@
       background: #fff;
       color: #000;
       letter-spacing: 0.01em;
-      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
     }
 
     #convert-btn:disabled { opacity: 0.25; cursor: not-allowed; }
@@ -319,20 +282,133 @@
     }
 
     #status.idle    { color: var(--muted); }
-    #status.working { color: var(--accent); }
-    #status.success { color: var(--green); }
+    #status.working { color: var(--muted2); }
     #status.error   { color: var(--red); }
 
     .spinner {
       width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,0.15);
-      border-top-color: #fff;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: #888;
       border-radius: 50%;
       animation: spin 0.65s linear infinite;
       flex-shrink: 0;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result panel ── */
+    #result-section { display: none; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .result-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted2);
+    }
+
+    .btn-reset {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-reset:hover { color: var(--text); border-color: var(--border2); }
+
+    /* Rendered preview */
+    .render-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      margin-bottom: 1.25rem;
+    }
+
+    .render-wrap img {
+      width: 100%;
+      display: block;
+    }
+
+    .render-placeholder {
+      width: 100%;
+      padding: 3rem 1rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--surface2);
+    }
+
+    /* Export buttons */
+    .export-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.625rem;
+    }
+
+    .export-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.625rem;
+    }
+
+    .btn-export {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.7rem 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      transition: background 0.15s, transform 0.1s;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .btn-export:hover { background: #1e1e1e; }
+    .btn-export:active { transform: scale(0.98); }
+
+    .btn-export.primary {
+      background: #fff;
+      color: #000;
+      border-color: #333;
+    }
+
+    .btn-export.primary:hover { background: #e8e8e8; }
+
+    .export-ext {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .btn-export.primary .export-ext { color: #666; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 3rem 0; }
 
     /* ── Section header ── */
     .section-header {
@@ -360,13 +436,7 @@
     }
 
     /* ── History ── */
-    #history-section { margin-top: 3rem; }
-
-    #history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.625rem;
-    }
+    #history-list { display: flex; flex-direction: column; gap: 0.625rem; }
 
     .hist-item {
       background: var(--surface);
@@ -382,8 +452,7 @@
     .hist-item:hover { border-color: var(--border2); }
 
     .hist-icon {
-      width: 38px;
-      height: 38px;
+      width: 38px; height: 38px;
       background: var(--surface2);
       border: 1px solid var(--border2);
       border-radius: 8px;
@@ -394,10 +463,7 @@
       flex-shrink: 0;
     }
 
-    .hist-info {
-      flex: 1;
-      min-width: 0;
-    }
+    .hist-info { flex: 1; min-width: 0; }
 
     .hist-name {
       font-size: 0.85rem;
@@ -408,47 +474,50 @@
       text-overflow: ellipsis;
     }
 
-    .hist-date {
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 0.15rem;
-    }
+    .hist-date { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
 
-    .hist-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
+    .hist-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
-    .btn-dl, .btn-del {
+    .btn-hist {
       font-family: 'Inter', sans-serif;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 500;
-      padding: 0.35rem 0.75rem;
+      padding: 0.3rem 0.6rem;
       border-radius: 6px;
       cursor: pointer;
-      transition: opacity 0.15s, background 0.15s;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 0.25rem;
+      transition: background 0.15s, color 0.15s;
     }
 
-    .btn-dl {
+    .btn-hist-dl {
       background: #fff;
       border: 1px solid #333;
       color: #000;
     }
 
-    .btn-dl:hover { background: #e8e8e8; }
+    .btn-hist-dl:hover { background: #e8e8e8; }
 
-    .btn-del {
+    .btn-hist-tex, .btn-hist-png {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted2);
+    }
+
+    .btn-hist-tex:hover, .btn-hist-png:hover {
+      border-color: var(--border2);
+      color: var(--text);
+    }
+
+    .btn-hist-del {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--muted);
     }
 
-    .btn-del:hover { border-color: #555; color: var(--text); }
+    .btn-hist-del:hover { border-color: #444; color: var(--red); }
 
     /* ── Empty state ── */
     .empty-state {
@@ -460,20 +529,13 @@
       border-radius: var(--radius);
     }
 
-    .empty-state .empty-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
-
-    /* ── Divider ── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 3rem 0;
-    }
+    .empty-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
   </style>
 </head>
 <body>
 
 <nav>
-  <a class="nav-logo" href="#">Neural<span>LaTeX</span></a>
+  <a class="nav-logo" href="#">NeuralLaTeX</a>
   <div class="nav-links">
     <a href="#convert-section">Convert</a>
     <a href="#history-section">History</a>
@@ -485,11 +547,11 @@
   <!-- Hero -->
   <div class="hero">
     <div class="hero-badge">✦ GPT-4o Vision</div>
-    <h1>Handwriting to<br><em>LaTeX PDF</em></h1>
-    <p>Upload a photo of handwritten math or text — get a perfectly typeset PDF in seconds.</p>
+    <h1>Handwriting to<br>LaTeX PDF</h1>
+    <p>Upload a photo of handwritten math or text — get a perfectly typeset document back.</p>
   </div>
 
-  <!-- Upload card -->
+  <!-- Upload -->
   <div id="convert-section" class="card">
     <div class="drop-zone" id="drop-zone">
       <input type="file" id="file-input" accept="image/*" />
@@ -507,15 +569,44 @@
     </div>
 
     <div class="filename-row">
-      <label class="filename-label" for="pdf-name">PDF filename</label>
+      <label class="filename-label" for="pdf-name">Filename</label>
       <div class="filename-input-wrap">
         <input type="text" id="pdf-name" class="filename-input" placeholder="handwriting" spellcheck="false" />
         <span class="filename-ext">.pdf</span>
       </div>
     </div>
 
-    <button id="convert-btn" disabled>Convert to PDF</button>
+    <button id="convert-btn" disabled>Convert</button>
     <div id="status" class="idle">Select an image to get started.</div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-section" class="card">
+    <div class="result-header">
+      <span class="result-title">Result</span>
+      <button class="btn-reset" id="reset-btn">← Convert another</button>
+    </div>
+
+    <div class="render-wrap" id="render-wrap">
+      <div class="render-placeholder" id="render-placeholder">Generating preview…</div>
+      <img id="render-img" src="" alt="Rendered output" style="display:none" />
+    </div>
+
+    <div class="export-label">Export as</div>
+    <div class="export-buttons">
+      <button class="btn-export primary" id="dl-pdf">
+        <span>PDF</span>
+        <span class="export-ext">.pdf</span>
+      </button>
+      <button class="btn-export" id="dl-tex">
+        <span>LaTeX</span>
+        <span class="export-ext">.tex</span>
+      </button>
+      <button class="btn-export" id="dl-png">
+        <span>Image</span>
+        <span class="export-ext">.png</span>
+      </button>
+    </div>
   </div>
 
   <div class="divider"></div>
@@ -532,26 +623,36 @@
 </main>
 
 <script>
-  const dropZone    = document.getElementById('drop-zone');
-  const fileInput   = document.getElementById('file-input');
-  const previewWrap = document.getElementById('preview-wrap');
-  const previewImg  = document.getElementById('preview-img');
-  const previewName = document.getElementById('preview-name');
-  const clearBtn    = document.getElementById('clear-btn');
-  const convertBtn  = document.getElementById('convert-btn');
-  const statusEl    = document.getElementById('status');
+  const dropZone     = document.getElementById('drop-zone');
+  const fileInput    = document.getElementById('file-input');
+  const previewWrap  = document.getElementById('preview-wrap');
+  const previewImg   = document.getElementById('preview-img');
+  const previewName  = document.getElementById('preview-name');
+  const clearBtn     = document.getElementById('clear-btn');
+  const convertBtn   = document.getElementById('convert-btn');
+  const statusEl     = document.getElementById('status');
   const pdfNameInput = document.getElementById('pdf-name');
-  const histList    = document.getElementById('history-list');
-  const histCount   = document.getElementById('hist-count');
+
+  const convertSection = document.getElementById('convert-section');
+  const resultSection  = document.getElementById('result-section');
+  const renderImg      = document.getElementById('render-img');
+  const renderPlaceholder = document.getElementById('render-placeholder');
+  const resetBtn       = document.getElementById('reset-btn');
+  const dlPdf          = document.getElementById('dl-pdf');
+  const dlTex          = document.getElementById('dl-tex');
+  const dlPng          = document.getElementById('dl-png');
+
+  const histList  = document.getElementById('history-list');
+  const histCount = document.getElementById('hist-count');
 
   let selectedFile = null;
+  let currentJobId = null;
+  let currentName  = 'handwriting';
 
-  // ── Status helpers ──
+  // ── Status ──
   function setStatus(msg, cls, spinning = false) {
     statusEl.className = cls;
-    statusEl.innerHTML = spinning
-      ? `<div class="spinner"></div>${msg}`
-      : msg;
+    statusEl.innerHTML = spinning ? `<div class="spinner"></div>${msg}` : msg;
   }
 
   // ── File selection ──
@@ -561,7 +662,6 @@
     previewName.textContent = file.name;
     previewWrap.style.display = 'block';
     convertBtn.disabled = false;
-    // Pre-fill filename from image name (strip extension)
     if (!pdfNameInput.value) {
       pdfNameInput.value = file.name.replace(/\.[^.]+$/, '');
     }
@@ -619,21 +719,68 @@
         return;
       }
 
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `${name}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
+      const data = await res.json();
+      currentJobId = data.job_id;
+      currentName  = data.name || 'handwriting';
 
-      setStatus('PDF downloaded successfully!', 'success');
-      convertBtn.disabled = false;
+      showResult(currentJobId, currentName, data.has_preview);
       loadHistory();
 
     } catch (err) {
       setStatus(`Network error: ${err.message}`, 'error');
       convertBtn.disabled = false;
     }
+  });
+
+  // ── Result ──
+  function showResult(jobId, name, hasPreview) {
+    convertSection.style.display = 'none';
+    resultSection.style.display = 'block';
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Preview image
+    renderImg.style.display = 'none';
+    renderPlaceholder.style.display = 'block';
+    renderPlaceholder.textContent = 'Loading preview…';
+
+    if (hasPreview) {
+      const img = new Image();
+      img.onload = () => {
+        renderPlaceholder.style.display = 'none';
+        renderImg.src = img.src;
+        renderImg.style.display = 'block';
+      };
+      img.onerror = () => {
+        renderPlaceholder.textContent = 'Preview unavailable — use export buttons below.';
+      };
+      img.src = `/jobs/${jobId}/preview`;
+    } else {
+      renderPlaceholder.textContent = 'Preview unavailable — use export buttons below.';
+    }
+
+    // Wire export buttons
+    dlPdf.onclick = () => triggerDownload(`/jobs/${jobId}/pdf`, `${name}.pdf`);
+    dlTex.onclick = () => triggerDownload(`/jobs/${jobId}/tex`, `${name}.tex`);
+    dlPng.onclick = () => triggerDownload(`/jobs/${jobId}/png`, `${name}.png`);
+  }
+
+  function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // ── Reset ──
+  resetBtn.addEventListener('click', () => {
+    resultSection.style.display = 'none';
+    convertSection.style.display = 'block';
+    convertSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    clearSelection();
+    convertBtn.disabled = true;
+    currentJobId = null;
   });
 
   // ── History ──
@@ -655,6 +802,8 @@
       return;
     }
 
+    const stem = e => e.name.replace(/\.pdf$/i, '');
+
     histList.innerHTML = entries.map(e => `
       <div class="hist-item" data-id="${e.id}">
         <div class="hist-icon">📄</div>
@@ -663,12 +812,14 @@
           <div class="hist-date">${formatDate(e.created_at)}</div>
         </div>
         <div class="hist-actions">
-          <a class="btn-dl" href="/history/${e.id}/pdf" download="${escHtml(e.name)}">↓ Download</a>
-          <button class="btn-del" data-id="${e.id}">✕</button>
+          <a class="btn-hist btn-hist-dl"  href="/history/${e.id}/pdf" download="${escHtml(e.name)}">PDF</a>
+          <a class="btn-hist btn-hist-tex" href="/history/${e.id}/tex" download="${escHtml(stem(e) + '.tex')}">TEX</a>
+          ${e.has_png ? `<a class="btn-hist btn-hist-png" href="/history/${e.id}/png" download="${escHtml(stem(e) + '.png')}">PNG</a>` : ''}
+          <button class="btn-hist btn-hist-del" data-id="${e.id}">✕</button>
         </div>
       </div>`).join('');
 
-    histList.querySelectorAll('.btn-del').forEach(btn => {
+    histList.querySelectorAll('.btn-hist-del').forEach(btn => {
       btn.addEventListener('click', () => deleteEntry(btn.dataset.id));
     });
   }
@@ -688,10 +839,11 @@
   }
 
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Initial load
   loadHistory();
 </script>
 </body>

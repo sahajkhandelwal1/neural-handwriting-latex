@@ -18,12 +18,13 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
-# Fail fast if pdflatex not installed
 if not shutil.which("pdflatex"):
     raise RuntimeError(
         "pdflatex not found. Install MacTeX: brew install --cask mactex-no-gui\n"
         "Then add /Library/TeX/texbin to PATH and restart."
     )
+
+GS = shutil.which("gs") or "/usr/local/bin/gs"
 
 TMP = Path("tmp")
 TMP.mkdir(exist_ok=True)
@@ -69,7 +70,7 @@ Rules:
 - Preserve the logical structure and flow of the content"""
 
 
-# --- History helpers ---
+# --- History ---
 
 def load_history() -> list:
     if not HISTORY_FILE.exists():
@@ -124,7 +125,24 @@ def extract_log_errors(log_path: Path) -> str:
     return "\n".join(errors) if errors else "Unknown compilation error"
 
 
-async def cleanup_job(job_id: str, delay: int = 30):
+def render_png(pdf_path: Path, png_path: Path, dpi: int = 150) -> bool:
+    """Render first page of PDF to PNG using Ghostscript."""
+    result = subprocess.run(
+        [
+            GS,
+            "-dNOPAUSE", "-dBATCH", "-dSAFER",
+            "-sDEVICE=png16m",
+            f"-r{dpi}",
+            "-dFirstPage=1", "-dLastPage=1",
+            f"-sOutputFile={png_path}",
+            str(pdf_path),
+        ],
+        capture_output=True,
+    )
+    return result.returncode == 0 and png_path.exists()
+
+
+async def cleanup_job(job_id: str, delay: int = 600):
     await asyncio.sleep(delay)
     for f in TMP.glob(f"{job_id}*"):
         try:
@@ -144,16 +162,15 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
     if content_type not in ALLOWED_MIME:
         raise HTTPException(status_code=415, detail="File must be an image")
 
-    pdf_name = pdf_name.strip() or "handwriting"
-    pdf_name = re.sub(r"\.pdf$", "", pdf_name, flags=re.IGNORECASE)
+    pdf_name = re.sub(r"\.pdf$", "", pdf_name.strip() or "handwriting", flags=re.IGNORECASE)
 
     job_id = uuid.uuid4().hex
     ext = EXT_MAP[content_type]
     input_path = TMP / f"{job_id}_input{ext}"
-    tex_path = TMP / f"{job_id}.tex"
-    pdf_path = TMP / f"{job_id}.pdf"
-    log_path = TMP / f"{job_id}.log"
-    hist_pdf = HISTORY_DIR / f"{job_id}.pdf"
+    tex_path   = TMP / f"{job_id}.tex"
+    pdf_path   = TMP / f"{job_id}.pdf"
+    png_path   = TMP / f"{job_id}.png"
+    log_path   = TMP / f"{job_id}.log"
 
     try:
         async with aiofiles.open(input_path, "wb") as f:
@@ -164,9 +181,7 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
 
         try:
             loop = asyncio.get_event_loop()
-            latex_body = await loop.run_in_executor(
-                None, call_openai, image_b64, content_type
-            )
+            latex_body = await loop.run_in_executor(None, call_openai, image_b64, content_type)
         except openai.APIError as e:
             raise HTTPException(status_code=502, detail=f"AI service error: {e}")
 
@@ -176,6 +191,7 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
         async with aiofiles.open(tex_path, "w") as f:
             await f.write(tex_content)
 
+        # Compile PDF
         try:
             result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
@@ -204,22 +220,36 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
         if not pdf_path.exists():
             raise HTTPException(status_code=422, detail="PDF was not generated")
 
+        # Render preview PNG
+        await asyncio.get_event_loop().run_in_executor(
+            None, render_png, pdf_path, png_path
+        )
+
         # Save to history
+        hist_pdf = HISTORY_DIR / f"{job_id}.pdf"
+        hist_tex = HISTORY_DIR / f"{job_id}.tex"
+        hist_png = HISTORY_DIR / f"{job_id}.png"
         shutil.copy2(pdf_path, hist_pdf)
+        shutil.copy2(tex_path, hist_tex)
+        if png_path.exists():
+            shutil.copy2(png_path, hist_png)
+
         entries = load_history()
         entries.insert(0, {
             "id": job_id,
             "name": f"{pdf_name}.pdf",
+            "has_png": png_path.exists(),
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
         save_history(entries)
 
-        asyncio.create_task(cleanup_job(job_id, delay=30))
-        return FileResponse(
-            path=str(pdf_path),
-            media_type="application/pdf",
-            filename="handwriting.pdf",
-        )
+        asyncio.create_task(cleanup_job(job_id, delay=600))
+
+        return JSONResponse({
+            "job_id": job_id,
+            "name": pdf_name,
+            "has_preview": png_path.exists(),
+        })
 
     except HTTPException:
         asyncio.create_task(cleanup_job(job_id, delay=5))
@@ -229,31 +259,88 @@ async def convert(file: UploadFile, pdf_name: str = Form("handwriting")):
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
 
 
+# --- Job download endpoints ---
+
+def _job_file(job_id: str, ext: str) -> Path:
+    if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    # Check tmp first, fall back to history
+    tmp_path = TMP / f"{job_id}{ext}"
+    hist_path = HISTORY_DIR / f"{job_id}{ext}"
+    if tmp_path.exists():
+        return tmp_path
+    if hist_path.exists():
+        return hist_path
+    raise HTTPException(status_code=404, detail="File not found or expired")
+
+
+@app.get("/jobs/{job_id}/pdf")
+async def job_pdf(job_id: str):
+    path = _job_file(job_id, ".pdf")
+    return FileResponse(str(path), media_type="application/pdf", filename="handwriting.pdf")
+
+
+@app.get("/jobs/{job_id}/tex")
+async def job_tex(job_id: str):
+    path = _job_file(job_id, ".tex")
+    return FileResponse(str(path), media_type="text/plain", filename="handwriting.tex")
+
+
+@app.get("/jobs/{job_id}/png")
+async def job_png(job_id: str):
+    path = _job_file(job_id, ".png")
+    return FileResponse(str(path), media_type="image/png", filename="handwriting.png")
+
+
+@app.get("/jobs/{job_id}/preview")
+async def job_preview(job_id: str):
+    path = _job_file(job_id, ".png")
+    return FileResponse(str(path), media_type="image/png")
+
+
+# --- History endpoints ---
+
 @app.get("/history")
 async def get_history():
     return JSONResponse(load_history())
 
 
 @app.get("/history/{job_id}/pdf")
-async def download_history_pdf(job_id: str):
-    # Sanitize — only hex chars allowed
+async def history_pdf(job_id: str):
     if not re.fullmatch(r"[0-9a-f]{32}", job_id):
         raise HTTPException(status_code=400, detail="Invalid job ID")
-    pdf_path = HISTORY_DIR / f"{job_id}.pdf"
-    if not pdf_path.exists():
+    path = HISTORY_DIR / f"{job_id}.pdf"
+    if not path.exists():
         raise HTTPException(status_code=404, detail="PDF not found")
-    return FileResponse(path=str(pdf_path), media_type="application/pdf", filename="handwriting.pdf")
+    return FileResponse(str(path), media_type="application/pdf", filename="handwriting.pdf")
+
+
+@app.get("/history/{job_id}/tex")
+async def history_tex(job_id: str):
+    if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    path = HISTORY_DIR / f"{job_id}.tex"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="LaTeX source not found")
+    return FileResponse(str(path), media_type="text/plain", filename="handwriting.tex")
+
+
+@app.get("/history/{job_id}/png")
+async def history_png(job_id: str):
+    if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    path = HISTORY_DIR / f"{job_id}.png"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="PNG not found")
+    return FileResponse(str(path), media_type="image/png", filename="handwriting.png")
 
 
 @app.delete("/history/{job_id}")
 async def delete_history_entry(job_id: str):
     if not re.fullmatch(r"[0-9a-f]{32}", job_id):
         raise HTTPException(status_code=400, detail="Invalid job ID")
-    pdf_path = HISTORY_DIR / f"{job_id}.pdf"
-    try:
-        pdf_path.unlink(missing_ok=True)
-    except OSError:
-        pass
+    for ext in (".pdf", ".tex", ".png"):
+        (HISTORY_DIR / f"{job_id}{ext}").unlink(missing_ok=True)
     entries = [e for e in load_history() if e["id"] != job_id]
     save_history(entries)
     return {"ok": True}
