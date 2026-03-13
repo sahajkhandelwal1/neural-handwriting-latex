@@ -1,16 +1,19 @@
 import asyncio
 import base64
+import json
 import os
 import re
 import shutil
+import subprocess
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import aiofiles
 import openai
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
@@ -18,12 +21,17 @@ load_dotenv()
 # Fail fast if pdflatex not installed
 if not shutil.which("pdflatex"):
     raise RuntimeError(
-        "pdflatex not found. Install MacTeX: brew install --cask mactex\n"
+        "pdflatex not found. Install MacTeX: brew install --cask mactex-no-gui\n"
         "Then add /Library/TeX/texbin to PATH and restart."
     )
 
 TMP = Path("tmp")
 TMP.mkdir(exist_ok=True)
+
+HISTORY_DIR = Path("history")
+HISTORY_DIR.mkdir(exist_ok=True)
+
+HISTORY_FILE = HISTORY_DIR / "index.json"
 
 client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
@@ -61,6 +69,23 @@ Rules:
 - Preserve the logical structure and flow of the content"""
 
 
+# --- History helpers ---
+
+def load_history() -> list:
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        return json.loads(HISTORY_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_history(entries: list) -> None:
+    HISTORY_FILE.write_text(json.dumps(entries, indent=2))
+
+
+# --- AI + compilation ---
+
 def call_openai(image_b64: str, media_type: str) -> str:
     message = client.chat.completions.create(
         model="gpt-4o",
@@ -86,7 +111,6 @@ def call_openai(image_b64: str, media_type: str) -> str:
 
 
 def strip_fences(text: str) -> str:
-    """Remove markdown code fences if the model added them despite instructions."""
     text = re.sub(r"^```[a-zA-Z]*\n?", "", text.strip())
     text = re.sub(r"\n?```$", "", text)
     return text.strip()
@@ -109,33 +133,33 @@ async def cleanup_job(job_id: str, delay: int = 30):
             pass
 
 
-app = FastAPI(title="Handwriting to LaTeX PDF")
+# --- App ---
+
+app = FastAPI(title="Neural Handwriting LaTeX")
 
 
 @app.post("/convert")
 async def convert(file: UploadFile):
-    # Validate MIME type
     content_type = file.content_type or ""
     if content_type not in ALLOWED_MIME:
         raise HTTPException(status_code=415, detail="File must be an image")
 
     job_id = uuid.uuid4().hex
     ext = EXT_MAP[content_type]
+    original_name = file.filename or f"upload{ext}"
     input_path = TMP / f"{job_id}_input{ext}"
     tex_path = TMP / f"{job_id}.tex"
     pdf_path = TMP / f"{job_id}.pdf"
     log_path = TMP / f"{job_id}.log"
+    hist_pdf = HISTORY_DIR / f"{job_id}.pdf"
 
     try:
-        # Write upload to disk
         async with aiofiles.open(input_path, "wb") as f:
             contents = await file.read()
             await f.write(contents)
 
-        # Base64 encode for OpenAI API
         image_b64 = base64.standard_b64encode(contents).decode("utf-8")
 
-        # Call OpenAI in thread executor (SDK is synchronous)
         try:
             loop = asyncio.get_event_loop()
             latex_body = await loop.run_in_executor(
@@ -145,24 +169,21 @@ async def convert(file: UploadFile):
             raise HTTPException(status_code=502, detail=f"AI service error: {e}")
 
         latex_body = strip_fences(latex_body)
-
-        # Write .tex file
         tex_content = LATEX_TEMPLATE.format(body=latex_body)
+
         async with aiofiles.open(tex_path, "w") as f:
             await f.write(tex_content)
 
-        # Run pdflatex
         try:
             result = await asyncio.wait_for(
                 asyncio.get_event_loop().run_in_executor(
                     None,
-                    lambda: __import__("subprocess").run(
+                    lambda: subprocess.run(
                         [
                             "pdflatex",
                             "-interaction=nonstopmode",
                             "-halt-on-error",
-                            "-output-directory",
-                            str(TMP),
+                            "-output-directory", str(TMP),
                             str(tex_path),
                         ],
                         capture_output=True,
@@ -176,12 +197,20 @@ async def convert(file: UploadFile):
 
         if result.returncode != 0:
             errors = extract_log_errors(log_path)
-            raise HTTPException(
-                status_code=422, detail=f"LaTeX compilation failed: {errors}"
-            )
+            raise HTTPException(status_code=422, detail=f"LaTeX compilation failed: {errors}")
 
         if not pdf_path.exists():
             raise HTTPException(status_code=422, detail="PDF was not generated")
+
+        # Save to history
+        shutil.copy2(pdf_path, hist_pdf)
+        entries = load_history()
+        entries.insert(0, {
+            "id": job_id,
+            "name": original_name,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        save_history(entries)
 
         asyncio.create_task(cleanup_job(job_id, delay=30))
         return FileResponse(
@@ -198,5 +227,35 @@ async def convert(file: UploadFile):
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
 
 
-# Mount static files LAST (catches all unmatched routes)
+@app.get("/history")
+async def get_history():
+    return JSONResponse(load_history())
+
+
+@app.get("/history/{job_id}/pdf")
+async def download_history_pdf(job_id: str):
+    # Sanitize — only hex chars allowed
+    if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    pdf_path = HISTORY_DIR / f"{job_id}.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="PDF not found")
+    return FileResponse(path=str(pdf_path), media_type="application/pdf", filename="handwriting.pdf")
+
+
+@app.delete("/history/{job_id}")
+async def delete_history_entry(job_id: str):
+    if not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+    pdf_path = HISTORY_DIR / f"{job_id}.pdf"
+    try:
+        pdf_path.unlink(missing_ok=True)
+    except OSError:
+        pass
+    entries = [e for e in load_history() if e["id"] != job_id]
+    save_history(entries)
+    return {"ok": True}
+
+
+# Mount static files LAST
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
