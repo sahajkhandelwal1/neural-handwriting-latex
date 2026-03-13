@@ -236,6 +236,55 @@
 
     .btn-clear:hover { color: var(--red); }
 
+    /* ── Filename input ── */
+    .filename-row {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .filename-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted2);
+      white-space: nowrap;
+    }
+
+    .filename-input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .filename-input-wrap:focus-within { border-color: var(--accent); }
+
+    .filename-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      padding: 0.5rem 0.75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      color: var(--text);
+      min-width: 0;
+    }
+
+    .filename-input::placeholder { color: var(--muted); }
+
+    .filename-ext {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 0 0.65rem 0 0;
+      user-select: none;
+    }
+
     /* ── Convert button ── */
     #convert-btn {
       margin-top: 1.25rem;
@@ -457,6 +506,14 @@
       </div>
     </div>
 
+    <div class="filename-row">
+      <label class="filename-label" for="pdf-name">PDF filename</label>
+      <div class="filename-input-wrap">
+        <input type="text" id="pdf-name" class="filename-input" placeholder="handwriting" spellcheck="false" />
+        <span class="filename-ext">.pdf</span>
+      </div>
+    </div>
+
     <button id="convert-btn" disabled>Convert to PDF</button>
     <div id="status" class="idle">Select an image to get started.</div>
   </div>
@@ -483,6 +540,7 @@
   const clearBtn    = document.getElementById('clear-btn');
   const convertBtn  = document.getElementById('convert-btn');
   const statusEl    = document.getElementById('status');
+  const pdfNameInput = document.getElementById('pdf-name');
   const histList    = document.getElementById('history-list');
   const histCount   = document.getElementById('hist-count');
 
@@ -503,6 +561,10 @@
     previewName.textContent = file.name;
     previewWrap.style.display = 'block';
     convertBtn.disabled = false;
+    // Pre-fill filename from image name (strip extension)
+    if (!pdfNameInput.value) {
+      pdfNameInput.value = file.name.replace(/\.[^.]+$/, '');
+    }
     setStatus('Ready to convert.', 'idle');
   }
 
@@ -512,6 +574,7 @@
     previewImg.src = '';
     previewWrap.style.display = 'none';
     convertBtn.disabled = true;
+    pdfNameInput.value = '';
     setStatus('Select an image to get started.', 'idle');
   }
 
@@ -557,7 +620,8 @@
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = 'handwriting.pdf';
+      const name = (pdfNameInput.value.trim() || 'handwriting').replace(/\.pdf$/i, '');
+      a.href = url; a.download = `${name}.pdf`;
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
 
