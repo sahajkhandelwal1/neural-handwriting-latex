@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handwriting → LaTeX PDF</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 2rem;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #2d3148;
+      border-radius: 12px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: #7c3aed;
+      background: rgba(124,58,237,0.06);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .drop-label {
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+
+    .drop-label span {
+      color: #a78bfa;
+      font-weight: 600;
+    }
+
+    .drop-hint {
+      font-size: 0.75rem;
+      color: #475569;
+      margin-top: 0.4rem;
+    }
+
+    /* Preview */
+    #preview-wrap {
+      display: none;
+      margin-top: 1.25rem;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #2d3148;
+      position: relative;
+    }
+
+    #preview-wrap img {
+      width: 100%;
+      display: block;
+      max-height: 300px;
+      object-fit: contain;
+      background: #0f1117;
+    }
+
+    .preview-name {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      color: #64748b;
+      background: #12151f;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Button */
+    #convert-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    #convert-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    #convert-btn:not(:disabled):hover { opacity: 0.9; }
+    #convert-btn:not(:disabled):active { transform: scale(0.98); }
+
+    /* Status */
+    #status {
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      min-height: 1.4em;
+      text-align: center;
+    }
+
+    #status.idle    { color: #475569; }
+    #status.working { color: #a78bfa; }
+    #status.success { color: #34d399; }
+    #status.error   { color: #f87171; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 0.9em;
+      height: 0.9em;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -0.15em;
+      margin-right: 0.4em;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Handwriting → LaTeX PDF</h1>
+    <p class="subtitle">Upload a photo of handwritten math or text — get a typeset PDF back.</p>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <div class="drop-icon">📷</div>
+      <p class="drop-label"><span>Choose an image</span> or drag it here</p>
+      <p class="drop-hint">JPEG · PNG · WebP · GIF</p>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview-img" src="" alt="preview" />
+      <div class="preview-name" id="preview-name"></div>
+    </div>
+
+    <button id="convert-btn" disabled>Convert to PDF</button>
+
+    <div id="status" class="idle">Select an image to get started.</div>
+  </div>
+
+  <script>
+    const dropZone   = document.getElementById('drop-zone');
+    const fileInput  = document.getElementById('file-input');
+    const previewWrap = document.getElementById('preview-wrap');
+    const previewImg  = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const convertBtn  = document.getElementById('convert-btn');
+    const statusEl    = document.getElementById('status');
+
+    let selectedFile = null;
+
+    function setStatus(msg, cls) {
+      statusEl.textContent = msg;
+      statusEl.className = cls;
+    }
+
+    function showPreview(file) {
+      selectedFile = file;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewName.textContent = file.name;
+      previewWrap.style.display = 'block';
+      convertBtn.disabled = false;
+      setStatus('Ready to convert.', 'idle');
+    }
+
+    // File input change
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) showPreview(fileInput.files[0]);
+    });
+
+    // Drag-and-drop
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        showPreview(file);
+      } else {
+        setStatus('Please drop an image file.', 'error');
+      }
+    });
+
+    // Convert
+    convertBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      convertBtn.disabled = true;
+      statusEl.innerHTML = '<span class="spinner"></span>Converting… this may take 10–30 seconds.';
+      statusEl.className = 'working';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const res = await fetch('/convert', { method: 'POST', body: formData });
+
+        if (!res.ok) {
+          let detail = `Error ${res.status}`;
+          try {
+            const json = await res.json();
+            detail = json.detail || detail;
+          } catch {}
+          setStatus(`${detail}`, 'error');
+          convertBtn.disabled = false;
+          return;
+        }
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'handwriting.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setStatus('PDF downloaded successfully!', 'success');
+        convertBtn.disabled = false;
+
+      } catch (err) {
+        setStatus(`Network error: ${err.message}`, 'error');
+        convertBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
