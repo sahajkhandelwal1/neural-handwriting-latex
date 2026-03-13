@@ -1,8 +1,18 @@
 # Handwriting → LaTeX PDF
 
-Upload a photo of handwritten math or text and get a typeset PDF back. Uses GPT-4o vision to convert handwriting to LaTeX, then compiles it with pdflatex.
+Upload a photo of handwritten math or text and get a typeset document back. Uses GPT-4o vision to convert handwriting to LaTeX, then compiles it with pdflatex.
 
 ![UI Demo](https://github.com/sahajkhandelwal1/neural-handwriting-latex/releases/download/v0.1.0/ReadmeDemo.png)
+
+## How It Works
+
+1. Upload a JPEG, PNG, WebP, or GIF of handwritten content
+2. GPT-4o (high-detail vision) transcribes it to LaTeX
+3. pdflatex compiles the LaTeX to a PDF
+4. A rendered preview of the output is shown in the browser
+5. Export as **PDF** (recommended), LaTeX source (`.tex`), or **PNG**
+
+Past conversions are saved in the History panel with all three export formats available.
 
 ## Setup
 
@@ -30,16 +40,10 @@ uvicorn main:app --reload --port 8000
 
 Then open http://localhost:8000.
 
-## How It Works
-
-1. Upload a JPEG, PNG, WebP, or GIF of handwritten content
-2. GPT-4o (high-detail vision) transcribes it to LaTeX
-3. pdflatex compiles the LaTeX to PDF
-4. PDF downloads automatically in the browser
-
 ## Stack
 
 - **Backend:** FastAPI + Python
 - **AI:** OpenAI GPT-4o vision API
 - **PDF:** pdflatex (MacTeX)
+- **PNG rendering:** Ghostscript
 - **Frontend:** Vanilla HTML/CSS/JS

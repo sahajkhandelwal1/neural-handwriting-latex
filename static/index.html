@@ -764,13 +764,17 @@
     dlPng.onclick = () => triggerDownload(`/jobs/${jobId}/png`, `${name}.png`);
   }
 
-  function triggerDownload(url, filename) {
+  async function triggerDownload(url, filename) {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = objUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
+    URL.revokeObjectURL(objUrl);
   }
 
   // ── Reset ──
@@ -812,13 +816,16 @@
           <div class="hist-date">${formatDate(e.created_at)}</div>
         </div>
         <div class="hist-actions">
-          <a class="btn-hist btn-hist-dl"  href="/history/${e.id}/pdf" download="${escHtml(e.name)}">PDF</a>
-          <a class="btn-hist btn-hist-tex" href="/history/${e.id}/tex" download="${escHtml(stem(e) + '.tex')}">TEX</a>
-          ${e.has_png ? `<a class="btn-hist btn-hist-png" href="/history/${e.id}/png" download="${escHtml(stem(e) + '.png')}">PNG</a>` : ''}
+          <button class="btn-hist btn-hist-dl"  data-url="/history/${e.id}/pdf" data-name="${escHtml(e.name)}">PDF</button>
+          <button class="btn-hist btn-hist-tex" data-url="/history/${e.id}/tex" data-name="${escHtml(stem(e) + '.tex')}">TEX</button>
+          ${e.has_png ? `<button class="btn-hist btn-hist-png" data-url="/history/${e.id}/png" data-name="${escHtml(stem(e) + '.png')}">PNG</button>` : ''}
           <button class="btn-hist btn-hist-del" data-id="${e.id}">✕</button>
         </div>
       </div>`).join('');
 
+    histList.querySelectorAll('[data-url]').forEach(btn => {
+      btn.addEventListener('click', () => triggerDownload(btn.dataset.url, btn.dataset.name));
+    });
     histList.querySelectorAll('.btn-hist-del').forEach(btn => {
       btn.addEventListener('click', () => deleteEntry(btn.dataset.id));
     });
